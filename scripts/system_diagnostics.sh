@@ -72,13 +72,14 @@ echo ""
 
 echo "--- 8. Docker Status ---"
 if command -v docker >/dev/null 2>&1; then
-    docker --version
+    docker --version 2>&1 || true
     if docker info >/dev/null 2>&1; then
         echo "Docker daemon: Active & Reachable"
     else
-        echo "Docker CLI available, but daemon not reachable or permission denied."
+        echo "Docker daemon: Not reachable or WSL integration not activated."
     fi
 else
     echo "Docker is not installed."
 fi
 echo "============================================="
+exit 0

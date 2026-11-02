@@ -7,18 +7,225 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div id="app">
-        <header class="app-header">
-            <h1>Teleop-Sim</h1>
-            <p class="subtitle">Real-Time Robotics Teleoperation & Network Reliability Platform</p>
-        </header>
-        <main class="dashboard-container">
-            <div class="card status-card">
-                <h3>System Status</h3>
-                <p id="system-status">Initializing Teleop-Sim...</p>
-            </div>
-        </main>
+    <!-- Disconnect Banner -->
+    <div id="connection-banner" class="connection-banner hidden">
+        <span>⚠️ Connection lost to robot backend. Reconnecting in <strong id="reconnect-countdown">1</strong>s...</span>
     </div>
+
+    <!-- Main Application Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">🤖</span>
+                <span class="logo-title">Teleop-Sim</span>
+            </div>
+            <span class="badge" id="badge-op-mode">IDLE</span>
+            <span class="badge badge-success" id="badge-connection">WS CONNECTED</span>
+        </div>
+        <div class="header-right">
+            <div class="system-pill">
+                <span class="pill-label">CPU:</span>
+                <span id="hdr-cpu" class="pill-value">-- %</span>
+            </div>
+            <div class="system-pill">
+                <span class="pill-label">RAM:</span>
+                <span id="hdr-ram" class="pill-value">-- MB</span>
+            </div>
+            <div class="system-pill">
+                <span class="pill-label">RTT:</span>
+                <span id="hdr-rtt" class="pill-value">-- ms</span>
+            </div>
+            <button id="btn-e-stop-top" class="btn btn-danger btn-e-stop">EMERGENCY STOP</button>
+            <button id="btn-reset-top" class="btn btn-secondary">RESET</button>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+
+        <!-- Column 1: Robot Canvas & Telemetry -->
+        <section class="panel panel-robot">
+            <div class="panel-header">
+                <h3>Robot Arena (2D Kinematic Simulator)</h3>
+                <span class="badge" id="arena-coords">X: 0.00m | Y: 0.00m | HDG: 0.0°</span>
+            </div>
+            <div class="canvas-container">
+                <canvas id="robot-canvas" width="600" height="420"></canvas>
+            </div>
+
+            <!-- Telemetry Cards Row -->
+            <div class="telemetry-grid">
+                <div class="card metric-card">
+                    <span class="card-label">Position (X, Y)</span>
+                    <span class="card-value" id="val-pos">0.00, 0.00 m</span>
+                </div>
+                <div class="card metric-card">
+                    <span class="card-label">Orientation</span>
+                    <span class="card-value" id="val-heading">0.0° (0.0 rad)</span>
+                </div>
+                <div class="card metric-card">
+                    <span class="card-label">Linear Speed</span>
+                    <span class="card-value" id="val-linear">0.00 m/s</span>
+                </div>
+                <div class="card metric-card">
+                    <span class="card-label">Angular Speed</span>
+                    <span class="card-value" id="val-angular">0.00 rad/s</span>
+                </div>
+                <div class="card metric-card">
+                    <span class="card-label">Battery Level</span>
+                    <span class="card-value" id="val-battery">100.0 %</span>
+                </div>
+                <div class="card metric-card">
+                    <span class="card-label">Seq Number</span>
+                    <span class="card-value" id="val-seq">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Column 2: Operator Controls & Network Impairment -->
+        <section class="panel panel-controls">
+            <!-- Operator Controls -->
+            <div class="sub-panel">
+                <div class="panel-header">
+                    <h3>Operator Controls</h3>
+                    <span class="pill-shortcut">WASD / Arrow Keys</span>
+                </div>
+
+                <div class="dpad-container">
+                    <button class="btn btn-dpad" id="btn-fwd" title="Forward (W / ↑)">▲</button>
+                    <div class="dpad-row">
+                        <button class="btn btn-dpad" id="btn-left" title="Turn Left (A / ←)">◀</button>
+                        <button class="btn btn-dpad btn-stop" id="btn-stop" title="Stop (Esc)">■</button>
+                        <button class="btn btn-dpad" id="btn-right" title="Turn Right (D / →)">▶</button>
+                    </div>
+                    <button class="btn btn-dpad" id="btn-bwd" title="Backward (S / ↓)">▼</button>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Speed Multiplier</span>
+                        <strong id="lbl-speed-val">1.0x</strong>
+                    </div>
+                    <input type="range" id="slider-speed" min="0.1" max="2.0" step="0.1" value="1.0">
+                </div>
+            </div>
+
+            <!-- Network Fault Injection Controls -->
+            <div class="sub-panel">
+                <div class="panel-header">
+                    <h3>Network Fault Injection</h3>
+                    <span class="badge badge-warning" id="badge-faults">Simulated</span>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Added Latency:</span>
+                        <strong id="lbl-latency-val">0 ms</strong>
+                    </div>
+                    <input type="range" id="slider-latency" min="0" max="2000" step="50" value="0">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Jitter Variation:</span>
+                        <strong id="lbl-jitter-val">0 ms</strong>
+                    </div>
+                    <input type="range" id="slider-jitter" min="0" max="500" step="25" value="0">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Packet Loss:</span>
+                        <strong id="lbl-loss-val">0 %</strong>
+                    </div>
+                    <input type="range" id="slider-loss" min="0" max="50" step="5" value="0">
+                </div>
+
+                <!-- Mini RTT Chart Canvas -->
+                <div class="chart-container">
+                    <span class="card-label">Round-Trip Latency (RTT ms)</span>
+                    <canvas id="rtt-chart" width="340" height="75"></canvas>
+                </div>
+            </div>
+
+            <!-- Session Recording & Replay -->
+            <div class="sub-panel">
+                <div class="panel-header">
+                    <h3>Session Recording</h3>
+                    <span class="badge" id="badge-rec-status">STANDBY</span>
+                </div>
+                <div class="session-btn-row">
+                    <button class="btn btn-primary" id="btn-session-start">⏺ Start Recording</button>
+                    <button class="btn btn-secondary" id="btn-session-stop" disabled>⏹ Stop Recording</button>
+                    <button class="btn btn-secondary" id="btn-session-list">📂 Sessions</button>
+                </div>
+                <div id="session-replay-container" class="session-list-box hidden">
+                    <ul id="session-items-list"></ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Column 3: Linux Systems & Event Logs -->
+        <section class="panel panel-observability">
+            <div class="panel-header">
+                <h3>Linux Operations Monitor</h3>
+                <span class="badge badge-success" id="badge-linux-health">HEALTHY</span>
+            </div>
+
+            <div class="system-stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Process ID</span>
+                    <strong class="stat-val" id="sys-pid">--</strong>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Uptime</span>
+                    <strong class="stat-val" id="sys-uptime">--</strong>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Process CPU</span>
+                    <strong class="stat-val" id="sys-proc-cpu">-- %</strong>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Memory RSS</span>
+                    <strong class="stat-val" id="sys-rss">-- MB</strong>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">System RAM</span>
+                    <strong class="stat-val" id="sys-mem-used">-- %</strong>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Port 8000</span>
+                    <strong class="stat-val" id="sys-port">ACTIVE</strong>
+                </div>
+            </div>
+
+            <!-- Live Event Logs Stream -->
+            <div class="logs-panel">
+                <div class="panel-header logs-header">
+                    <h3>Application Event Log</h3>
+                    <div class="log-controls">
+                        <select id="log-filter-level">
+                            <option value="">ALL LEVELS</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                        <button class="btn btn-xs" id="btn-clear-logs">Clear</button>
+                    </div>
+                </div>
+                <div class="log-terminal" id="log-terminal">
+                    <!-- Streamed log rows -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/robot.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/metrics.js"></script>
+    <script src="js/dashboard.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

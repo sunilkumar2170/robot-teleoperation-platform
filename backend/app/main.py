@@ -1,12 +1,14 @@
 """
 Teleop-Sim FastAPI Application
 --------------------------------
-Wires together:
-  • Robot simulation engine lifecycle (startup / graceful shutdown)
-  • REST API routes
-  • Phase 3 WebSocket endpoint placeholder
-  • Static frontend file serving
-  • CORS, SIGTERM/SIGINT handlers
+Main application entry point. Coordinates:
+  • Startup/shutdown lifespans
+  • Database initialization (SQLite)
+  • Structured rotating logging
+  • 20 Hz differential-drive simulation engine loop
+  • WebSocket broadcast synchronization
+  • Linux process signal handlers (SIGTERM, SIGINT)
+  • REST API routes and static frontend serving
 """
 from __future__ import annotations
 
@@ -23,78 +25,75 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api import routes, websocket
+from app.api.websocket import _init_simulator_callback
 from app.core.config import settings
+from app.database.database import init_db
 from app.robot.simulator import get_simulator
-
-# ── Logging configuration ─────────────────────────────────────────────────────
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-logger = logging.getLogger("teleop_sim")
+from app.services.logging_service import setup_structured_logging
 
 _START_TIME = time.time()
+logger = logging.getLogger("teleop_sim")
 
-
-# ── Application lifespan ──────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Startup:  ensure data/logs directories exist, start simulation loop.
-    Shutdown: gracefully stop the simulation loop and flush logs.
-    """
-    # Create runtime directories
+    """Application lifespan manager."""
+    # 1. Initialize rotating logs
+    setup_structured_logging()
+    logger.info("Initializing %s v%s...", settings.PROJECT_NAME, settings.VERSION)
+
+    # 2. Initialize database
     settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
     settings.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    init_db()
+    logger.info("Database initialized at %s", settings.DATA_DIR / "teleop_sim.db")
 
-    # Register SIGTERM / SIGINT handlers so `kill -15 <pid>` works correctly
+    # 3. Register POSIX signal handlers on non-Windows platforms
     loop = asyncio.get_running_loop()
 
     def _handle_signal(sig_num: int) -> None:
         logger.warning("Received signal %d — initiating graceful shutdown", sig_num)
         loop.stop()
 
-    # Only register on POSIX systems (Linux / macOS / WSL2 container)
     if sys.platform != "win32":
         for sig in (signal.SIGTERM, signal.SIGINT):
             loop.add_signal_handler(sig, _handle_signal, sig)
 
-    # Start robot simulation loop
+    # 4. Wire simulator broadcast to WebSocket manager
+    _init_simulator_callback()
+
+    # 5. Start robot simulation loop
     sim = get_simulator()
     await sim.start()
     logger.info(
-        "%s v%s started in %s environment — simulation loop active at %.1f Hz",
-        settings.PROJECT_NAME,
-        settings.VERSION,
-        settings.ENVIRONMENT,
+        "Simulation loop started at %.1f Hz. Boundary: [%.1f, %.1f] x [%.1f, %.1f]",
         settings.SIMULATION_FREQUENCY_HZ,
+        settings.BOUNDS_MIN_X,
+        settings.BOUNDS_MAX_X,
+        settings.BOUNDS_MIN_Y,
+        settings.BOUNDS_MAX_Y,
     )
 
-    yield  # ← application runs here ────────────────────────────────────────
+    yield  # Application runs here
 
     # Graceful shutdown
-    logger.info("Shutdown initiated — stopping simulation loop")
+    logger.info("Shutting down %s...", settings.PROJECT_NAME)
     await sim.stop()
-    logger.info("%s shutdown complete", settings.PROJECT_NAME)
+    logger.info("Simulation loop stopped. Shutdown complete.")
 
 
-# ── Application factory ───────────────────────────────────────────────────────
+# ── Create FastAPI App ────────────────────────────────────────────────────────
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description=(
-        "Real-Time Robotics Teleoperation, Network Reliability and Linux Operations Platform. "
-        "Demonstrates skills relevant to a Robotics Forward Deployed Engineer."
-    ),
+    description="Real-Time Robotics Teleoperation, Network Reliability and Linux Operations Platform",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -103,15 +102,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Routers ───────────────────────────────────────────────────────────────────
-
+# Include Routers
 app.include_router(routes.router)
 app.include_router(websocket.router)
 
 
-# ── Health check (top-level for Docker HEALTHCHECK compatibility) ─────────────
+# ── Liveness Health Check Endpoint ────────────────────────────────────────────
 
-@app.get("/health", tags=["System"], summary="Liveness probe")
+@app.get("/health", tags=["System"], summary="System health probe")
 async def health_check():
     uptime = time.time() - _START_TIME
     sim = get_simulator()
@@ -127,18 +125,15 @@ async def health_check():
     }
 
 
-# ── Static frontend ───────────────────────────────────────────────────────────
+# ── Mount Frontend Static Assets ──────────────────────────────────────────────
 
-_frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
-if _frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
+frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
-
-# ── Direct entry point ────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(
         "app.main:app",
         host=settings.HOST,

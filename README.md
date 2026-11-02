@@ -197,6 +197,107 @@ pytest -v
 
 ---
 
+## Phase 2: Robot Simulation Engine
+
+**Status**: Complete ✅
+
+### What Was Built
+
+| Component | File | Description |
+|-----------|------|-------------|
+| Robot State | `backend/app/robot/state.py` | Mutable authoritative state dataclass (x, y, orientation, battery, mode) |
+| Kinematics Engine | `backend/app/robot/simulator.py` | 20 Hz differential-drive asyncio simulation loop with boundary enforcement |
+| Safety System | `backend/app/robot/safety.py` | Emergency stop, safety watchdog, command validation |
+| Command Schema | `backend/app/schemas/command.py` | Pydantic v2 validated command + acknowledgement models |
+| Robot Schema | `backend/app/schemas/robot.py` | Pydantic v2 robot state response model |
+| REST API | `backend/app/api/routes.py` | 7 endpoints for state, commands, E-stop, reset, network, metrics |
+| WebSocket stub | `backend/app/api/websocket.py` | Phase 3 placeholder at `/ws/robot` |
+| Tests | `backend/tests/test_robot.py` | 77 Pytest tests (81 total including Phase 1) |
+
+### REST Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Liveness probe with simulation status |
+| `GET` | `/api/robot/state` | Authoritative robot state |
+| `POST` | `/api/robot/command` | Submit movement command |
+| `POST` | `/api/robot/emergency-stop` | Immediate halt + latch |
+| `POST` | `/api/robot/reset` | Clear E-stop, return to (0,0) |
+| `GET` | `/api/network/conditions` | Read network fault settings |
+| `POST` | `/api/network/conditions` | Update network fault settings |
+| `GET` | `/api/metrics` | Command counters + robot snapshot |
+
+### Command Message Format
+
+```json
+{
+  "command_id": "cmd-928079e9",
+  "sequence_number": 1,
+  "timestamp": 1793652000.0,
+  "command_type": "MOVE_FORWARD",
+  "speed": 1.0
+}
+```
+
+Valid `command_type` values: `MOVE_FORWARD`, `MOVE_BACKWARD`, `TURN_LEFT`, `TURN_RIGHT`, `STOP`, `EMERGENCY_STOP`
+
+### Acknowledgement Response
+
+```json
+{
+  "command_id": "cmd-928079e9",
+  "sequence_number": 1,
+  "status": "ACCEPTED",
+  "reason": null,
+  "server_timestamp": 1793652000.05
+}
+```
+
+Possible `status` values: `ACCEPTED`, `REJECTED`, `EMERGENCY_STOP_ACTIVE`
+
+### Live API Demonstration
+
+```
+STEP 1: Initial state          x=0.0  y=0.0  orientation=0.0  mode=IDLE
+STEP 2: MOVE_FORWARD seq=1     → ACCEPTED
+STEP 3: Position after tick    x=0.25 y=0.0  orientation=0.0  mode=MOVING
+STEP 4: TURN_LEFT seq=2        → ACCEPTED
+STEP 5: Orientation after tick x=0.25 y=0.0  orientation=0.375 mode=MOVING
+STEP 6: EMERGENCY STOP         → acknowledged=True
+STEP 7: MOVE_FORWARD blocked   → EMERGENCY_STOP_ACTIVE
+STEP 8: RESET                  → acknowledged=True
+STEP 9: State after reset      x=0.0  y=0.0  emergency_stop=False mode=IDLE
+STEP 10: MOVE after reset      → ACCEPTED
+STEP 11: Metrics               received=4 accepted=3 rejected=1 estops=1 resets=1
+```
+
+### Robot Coordinate System
+
+```
+                    +Y (North)
+                     |
+                     |
+  -X (West) ---------+--------- +X (East)   ← orientation=0.0 faces East
+                     |
+                     |
+                    -Y (South)
+
+Boundary: X ∈ [-50, 50]  Y ∈ [-50, 50]
+Speed range: 0.0 – 2.0 (normalised multiplier)
+Simulation frequency: 20 Hz (configurable via SIMULATION_FREQUENCY_HZ)
+Watchdog timeout: 2.0 s (configurable via WATCHDOG_TIMEOUT_SECONDS)
+```
+
+### Run Tests
+
+```bash
+cd teleop-sim
+PYTHONPATH=backend python -m pytest backend/tests/ -v
+# → 81 passed in ~3s
+```
+
+---
+
 ## 7. Regenerate Screenshots
 
 Screenshots are generated programmatically from the real application UI using Pillow. Run this whenever the frontend changes:

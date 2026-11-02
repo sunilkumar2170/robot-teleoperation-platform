@@ -37,22 +37,7 @@ The animation below is generated directly by executing the underlying differenti
 
 ---
 
-## 🗺️ Project Roadmap
 
-| Phase | Description | Status |
-|:---:|---|:---:|
-| **Phase 1** | Project scaffolding, multi-OS configuration, Dockerfile, shell scripts | **Complete** ✅ |
-| **Phase 2** | Python 2D robot kinematics engine, safety watchdog, REST API, Pytest suite | **Complete** ✅ |
-| **Phase 3** | WebSocket bi-directional command streaming and state broadcast (`/ws/robot`) | *Upcoming* ⏳ |
-| **Phase 4** | Interactive browser canvas dashboard, keyboard teleop, and telemetry cards | *Upcoming* ⏳ |
-| **Phase 5** | Network fault injection engine (latency, jitter, drop) & RTT telemetry | *Upcoming* ⏳ |
-| **Phase 6** | Safety watchdog server-side verification and E-stop UI workflow | *Upcoming* ⏳ |
-| **Phase 7** | Resilient auto-reconnection, backoff, and state recovery synchronization | *Upcoming* ⏳ |
-| **Phase 8** | SQLite session recording, audit event logging, and playback replay service | *Upcoming* ⏳ |
-| **Phase 9** | Linux system monitoring (`psutil`, `/proc`), log rotating streams, and diagnostics | *Upcoming* ⏳ |
-| **Phase 10** | Production Docker Compose multi-container deployment and volume persistence | *Upcoming* ⏳ |
-| **Phase 11** | End-to-end integration test suite, fault-injection tests, bug fixes | *Upcoming* ⏳ |
-| **Phase 12** | Comprehensive documentation, architecture diagrams, and deployment walkthrough | *Upcoming* ⏳ |
 
 ---
 

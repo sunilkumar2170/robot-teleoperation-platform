@@ -1,64 +1,84 @@
-# Teleop-Sim: Real-Time Robotics Teleoperation & Network Reliability Platform
+# Teleop-Sim 🤖
+### Real-Time Robotics Teleoperation & Network Reliability Platform
 
-Teleop-Sim is a production-grade remote robotics teleoperation simulator designed to mirror the challenges faced by **Robotics Forward Deployed Engineers (FDE)**. It simulates real-world physical and network constraints—including dynamic latency, jitter, packet loss, WebSocket disconnections, command acknowledgement, safety watchdog timeouts, and emergency stop overrides—alongside integrated Linux systems monitoring and operations.
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![WebSockets](https://img.shields.io/badge/WebSockets-RFC_6455-orange.svg)](https://websockets.readthedocs.io/)
+[![Linux](https://img.shields.io/badge/Linux-Ubuntu%20%7C%20WSL2-FCC624.svg?logo=linux&logoColor=black)](https://ubuntu.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Tests](https://img.shields.io/badge/Tests-81%20Passed-brightgreen.svg)](https://pytest.org/)
+[![Status](https://img.shields.io/badge/Status-Actively%20Under%20Development-yellow.svg)]()
 
----
+> **Building reliable remote robot control systems with Python, Linux, WebSockets and Docker.**  
+> Teleop-Sim is a robotics teleoperation simulator under development designed to explore the engineering challenges of remotely controlling robots over unreliable networks.
 
-## Application Screenshots
+The project focuses on real-time communication, robot state synchronization, network fault injection, Linux diagnostics, process management, and deployment reliability — mirroring the core competencies of a **Robotics Forward Deployed Engineer (FDE)**.
 
-> Screenshots refresh automatically as each implementation phase completes.  
-> Run `python docs/generate_screenshots.py` to regenerate after any UI change.
-
-### 1. Robotics Operator Dashboard
-<!-- Phase 2+ : HTML5 Canvas robot, WASD controls, battery & status telemetry -->
-![Teleop-Sim Operator Dashboard — 2D robot canvas, direction controls, emergency stop, and live status cards](docs/images/teleop-dashboard.png)
-
-The main operator view shows the 2D robot canvas with heading indicator, directional control buttons, an **Emergency Stop** override, and real-time telemetry cards (position, battery, connection status).  
-*Robot kinematics and WebSocket control are implemented in Phase 2 & 3.*
-
----
-
-### 2. Network Fault Injection & Latency Dashboard
-<!-- Phase 5 : latency/jitter/packet-loss sliders, live RTT chart -->
-![Network monitoring panel — latency, jitter, and packet-loss sliders with live RTT chart](docs/images/network-monitoring.png)
-
-The network panel provides runtime sliders for **Latency (0–2000 ms)**, **Jitter (0–500 ms)**, and **Packet Loss (0–50 %)**, plus a live round-trip-time chart so operators can observe the direct impact of simulated faults on robot control.  
-*Network fault engine and live telemetry charting implemented in Phase 5.*
+**Repository:** [https://github.com/sunilkumar2170/robot-teleoperation-platform](https://github.com/sunilkumar2170/robot-teleoperation-platform)
 
 ---
 
-### 3. Linux System Monitoring & Application Logs
-<!-- Phase 9 : psutil CPU/MEM/Disk, log stream, process status -->
-![Linux monitoring panel — CPU, memory, disk metrics and live application log stream](docs/images/linux-monitoring.png)
+## 🎥 Live Simulation Demo
 
-The Linux operations panel surfaces real-time host metrics (CPU %, RSS memory, disk, WebSocket connection count, uptime) pulled via `psutil` and `/proc`, alongside a live-streaming application event log (equivalent to `tail -f logs/application.log`).  
-*Full Linux monitoring module implemented in Phase 9.*
+The animation below is generated directly by executing the underlying differential-drive kinematics simulation engine (`backend/app/robot/simulator.py`) at 20 Hz, showing forward drive, turning, velocity scaling, emergency stop latching, and home-position reset:
+
+![Teleop-Sim 2D Robot Simulation Demo](docs/images/robot-demo.gif)
 
 ---
 
-## 1. System Architecture
+## 🎯 Engineering Focus
+
+- **Real-Time Robot Control & Telemetry**: Server-authoritative 2D differential-drive kinematics with monotonic sequence numbering.
+- **Network Impairment Simulation**: Planned runtime fault injection for latency (0–2000 ms), jitter (0–500 ms), and packet loss (0–50%).
+- **Fail-Safe Robot Safety**: Latched Emergency Stop (`E-STOP`) override and automated safety watchdog timeout (2.0s).
+- **Linux Systems Operations**: Safe non-root inspection via `/proc` and `psutil`, graceful signal dispatching (`SIGTERM`/`SIGKILL`), and port auditing (`ss`/`lsof`).
+- **Session Telemetry & Replay**: SQLite-backed audit trails of telemetry frames and operator commands.
+- **Containerized Deployment**: Multi-stage Linux container with health probes and persistent storage volumes.
+
+---
+
+## 🗺️ Project Roadmap
+
+| Phase | Description | Status |
+|:---:|---|:---:|
+| **Phase 1** | Project scaffolding, multi-OS configuration, Dockerfile, shell scripts | **Complete** ✅ |
+| **Phase 2** | Python 2D robot kinematics engine, safety watchdog, REST API, Pytest suite | **Complete** ✅ |
+| **Phase 3** | WebSocket bi-directional command streaming and state broadcast (`/ws/robot`) | *Upcoming* ⏳ |
+| **Phase 4** | Interactive browser canvas dashboard, keyboard teleop, and telemetry cards | *Upcoming* ⏳ |
+| **Phase 5** | Network fault injection engine (latency, jitter, drop) & RTT telemetry | *Upcoming* ⏳ |
+| **Phase 6** | Safety watchdog server-side verification and E-stop UI workflow | *Upcoming* ⏳ |
+| **Phase 7** | Resilient auto-reconnection, backoff, and state recovery synchronization | *Upcoming* ⏳ |
+| **Phase 8** | SQLite session recording, audit event logging, and playback replay service | *Upcoming* ⏳ |
+| **Phase 9** | Linux system monitoring (`psutil`, `/proc`), log rotating streams, and diagnostics | *Upcoming* ⏳ |
+| **Phase 10** | Production Docker Compose multi-container deployment and volume persistence | *Upcoming* ⏳ |
+| **Phase 11** | End-to-end integration test suite, fault-injection tests, bug fixes | *Upcoming* ⏳ |
+| **Phase 12** | Comprehensive documentation, architecture diagrams, and deployment walkthrough | *Upcoming* ⏳ |
+
+---
+
+## 🏗️ System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Client["Operator Browser Dashboard"]
-        UI["HTML5 / Canvas UI"]
+    subgraph Client["Operator Web Client"]
+        UI["HTML5 / Canvas Dashboard"]
         WSClient["WebSocket Client (Auto-Reconnect)"]
-        MetricsUI["Telemetry & Latency Graphs"]
+        MetricsUI["Telemetry & Latency Charts"]
     end
 
     subgraph Backend["FastAPI Backend (Asyncio)"]
         Router["REST & WebSocket Endpoints"]
-        FaultInjector["Network Fault Injector<br/>(Latency, Jitter, Packet Drop)"]
-        CmdValidator["Command & Sequence Validator"]
+        FaultInjector["Network Fault Injector (Phase 5)"]
+        CmdValidator["Sequence & Command Validator"]
         Watchdog["Safety Watchdog Service"]
-        SimEngine["2D Robot Kinematics Simulator<br/>(Authoritative State)"]
-        LinuxMon["Linux System Monitor<br/>(Procfs, psutil, Netstat)"]
-        SessionSvc["Session Recorder & Replay Service"]
+        SimEngine["2D Differential-Drive Simulator (20 Hz)"]
+        LinuxMon["Linux System Monitor (Phase 9)"]
+        SessionSvc["Session Recorder (Phase 8)"]
     end
 
-    subgraph Storage["Persistence & Logs"]
+    subgraph Persistence["Storage & Observability"]
         DB[("SQLite Database")]
-        Logs["Rotating Structured Logs<br/>(App, Robot, Network, Security)"]
+        Logs["Rotating Structured Logs"]
     end
 
     UI --> WSClient
@@ -77,161 +97,68 @@ flowchart TD
 
 ---
 
-## 2. Technology Stack
+## 📸 Interface Previews
 
-- **Backend**: Python 3.11+, FastAPI, Uvicorn, WebSockets, Pydantic v2, SQLAlchemy 2.0, SQLite, Asyncio
-- **Frontend**: Vanilla JavaScript (ES6+), HTML5 Canvas, Modern CSS3 Dark Theme
-- **Linux Operations**: Ubuntu / WSL2, Bash automation, `procfs`, POSIX signals (`SIGTERM`, `SIGINT`), network inspection (`ss`, `lsof`)
-- **Containerization**: Docker, Docker Compose, non-root security container
-- **Testing**: Pytest, FastAPI TestClient, Asyncio WebSocket tests
+> **Note on Visual Previews**: These panels represent the planned UI architecture and design system. As upcoming phases are implemented and connected to backend data feeds, they will be refreshed with live browser captures.
+
+### 1. Robotics Operator Dashboard (Phase 2 Baseline)
+![Teleop-Sim Operator Dashboard Preview](docs/images/teleop-dashboard.png)
+*Displays the 2D robot arena, directional teleop controls, emergency stop trigger, and kinematic telemetry cards.*
 
 ---
 
-## 3. Project Directory Structure
+### 2. Network Fault Injection & Latency Monitor (Design Preview — Phase 5)
+![Network Fault Injection Preview](docs/images/network-monitoring.png)
+*Operator controls to artificially induce latency (0–2000 ms), jitter (0–500 ms), and packet loss (0–50%) to stress-test control loops.*
+
+---
+
+### 3. Linux Systems & Event Log Stream (Design Preview — Phase 9)
+![Linux System Monitoring Preview](docs/images/linux-monitoring.png)
+*Real-time server telemetry (`psutil` CPU/RAM/Disk metrics) and application log streams.*
+
+---
+
+## ⚙️ Implemented Robot Engine & API (Phase 2)
+
+### Robot Coordinate System
 
 ```text
-teleop-sim/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                  # Application entry point & lifespan
-│   │   ├── core/                    # Settings & configuration
-│   │   ├── api/                     # REST routes & WebSocket handler
-│   │   ├── robot/                   # Kinematics, authoritative state & safety watchdog
-│   │   ├── network/                 # Fault injector & latency metrics
-│   │   ├── linux/                   # Safe Linux system monitor
-│   │   ├── services/                # Session recording & structured logging
-│   │   ├── database/                # SQLite connection & SQLAlchemy models
-│   │   └── schemas/                 # Pydantic validation schemas
-│   ├── tests/                       # Pytest automated test suite
-│   ├── requirements.txt             # Python dependencies
-│   └── Dockerfile                   # Production container definition
-├── frontend/
-│   ├── index.html                   # Teleoperation web interface
-│   ├── css/
-│   │   └── style.css                # Dark theme design system
-│   └── js/
-│       ├── app.js                   # Application bootstrap
-│       ├── websocket.js             # Resilient WebSocket client with backoff
-│       ├── robot.js                 # HTML5 Canvas 2D robot renderer
-│       ├── dashboard.js             # UI controls & event binders
-│       └── metrics.js               # Latency & telemetry tracking
-├── scripts/
-│   ├── start.sh                     # Service daemon launcher
-│   ├── stop.sh                      # Graceful shutdown (SIGTERM -> SIGKILL)
-│   ├── status.sh                    # Process & port inspector
-│   └── system_diagnostics.sh        # Host & container environment diagnostics
-├── logs/                            # Rotating log files directory
-├── data/                            # Persistent SQLite database storage
-├── docker-compose.yml               # Multi-platform container orchestration
-├── .env.example                     # Environment configuration template
-├── .gitignore                       # Git ignore rules
-└── README.md                        # Documentation
+                    +Y (North)
+                     |
+                     |
+  -X (West) ---------+--------- +X (East)   [orientation = 0.0 rad faces East]
+                     |
+                     |
+                    -Y (South)
+
+Simulation Boundary: X ∈ [-50.0, 50.0] m, Y ∈ [-50.0, 50.0] m
+Base Linear Velocity: 1.0 m/s (scaled by command speed 0.0–2.0)
+Base Angular Velocity: 1.5 rad/s (left: +CCW, right: -CW)
+Simulation Frequency: 20 Hz (50 ms tick interval)
+Watchdog Timeout: 2.0 s inactivity threshold
 ```
 
----
+### REST API Endpoints
 
-## 4. Environment & Installation
+| Method | Endpoint | Description | Phase |
+|---|---|---|:---:|
+| `GET` | `/health` | System liveness probe and simulation status | Phase 1 |
+| `GET` | `/api/robot/state` | Retrieve authoritative 2D kinematic robot state | Phase 2 |
+| `POST` | `/api/robot/command` | Submit validated movement command | Phase 2 |
+| `POST` | `/api/robot/emergency-stop` | Trigger latched Emergency Stop (zeros velocities) | Phase 2 |
+| `POST` | `/api/robot/reset` | Clear E-stop latch and return robot to origin `(0, 0)` | Phase 2 |
+| `GET` | `/api/network/conditions` | Read current network fault parameters | Phase 2 |
+| `POST` | `/api/network/conditions` | Update network fault parameters | Phase 2 |
+| `GET` | `/api/metrics` | High-level telemetry counters and uptime | Phase 2 |
+| `WS` | `/ws/robot` | Real-time bi-directional WebSocket interface | Phase 3 |
 
-### Option A: Native Linux / Windows WSL2 (Ubuntu)
+### Command & State Payload Samples
 
-1. **Verify Python 3.11+ & prerequisites**:
-   ```bash
-   python3 --version
-   ```
-
-2. **Create and activate a virtual environment**:
-   ```bash
-   cd teleop-sim
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r backend/requirements.txt
-   ```
-
-4. **Run backend**:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend
-   ```
-
-### Option B: Docker & Docker Compose
-
-1. **Build and start container**:
-   ```bash
-   docker compose up --build -d
-   ```
-
-2. **Inspect logs**:
-   ```bash
-   docker compose logs -f
-   ```
-
-3. **Stop container**:
-   ```bash
-   docker compose down
-   ```
-
----
-
-## 5. Linux Diagnostic Scripts
-
-The `scripts/` directory provides operational tooling:
-
-- `bash scripts/system_diagnostics.sh`: Gathers distribution, kernel, CPU, memory, disk, process, and port diagnostics.
-- `bash scripts/start.sh`: Launches the backend in the background and writes PID to `logs/teleop-sim.pid`.
-- `bash scripts/status.sh`: Checks process status and verifies port 8000 is accepting connections.
-- `bash scripts/stop.sh`: Sends a graceful `SIGTERM` (signal 15), verifies process termination, and cleans up PID tracking.
-
----
-
-## 6. Running Tests
-
-Run the test suite with Pytest:
-
-```bash
-cd teleop-sim/backend
-pytest -v
-```
-
----
-
-## Phase 2: Robot Simulation Engine
-
-**Status**: Complete ✅
-
-### What Was Built
-
-| Component | File | Description |
-|-----------|------|-------------|
-| Robot State | `backend/app/robot/state.py` | Mutable authoritative state dataclass (x, y, orientation, battery, mode) |
-| Kinematics Engine | `backend/app/robot/simulator.py` | 20 Hz differential-drive asyncio simulation loop with boundary enforcement |
-| Safety System | `backend/app/robot/safety.py` | Emergency stop, safety watchdog, command validation |
-| Command Schema | `backend/app/schemas/command.py` | Pydantic v2 validated command + acknowledgement models |
-| Robot Schema | `backend/app/schemas/robot.py` | Pydantic v2 robot state response model |
-| REST API | `backend/app/api/routes.py` | 7 endpoints for state, commands, E-stop, reset, network, metrics |
-| WebSocket stub | `backend/app/api/websocket.py` | Phase 3 placeholder at `/ws/robot` |
-| Tests | `backend/tests/test_robot.py` | 77 Pytest tests (81 total including Phase 1) |
-
-### REST Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Liveness probe with simulation status |
-| `GET` | `/api/robot/state` | Authoritative robot state |
-| `POST` | `/api/robot/command` | Submit movement command |
-| `POST` | `/api/robot/emergency-stop` | Immediate halt + latch |
-| `POST` | `/api/robot/reset` | Clear E-stop, return to (0,0) |
-| `GET` | `/api/network/conditions` | Read network fault settings |
-| `POST` | `/api/network/conditions` | Update network fault settings |
-| `GET` | `/api/metrics` | Command counters + robot snapshot |
-
-### Command Message Format
-
+**Submit Movement Command (`POST /api/robot/command`)**:
 ```json
 {
-  "command_id": "cmd-928079e9",
+  "command_id": "cmd-001",
   "sequence_number": 1,
   "timestamp": 1793652000.0,
   "command_type": "MOVE_FORWARD",
@@ -239,13 +166,10 @@ pytest -v
 }
 ```
 
-Valid `command_type` values: `MOVE_FORWARD`, `MOVE_BACKWARD`, `TURN_LEFT`, `TURN_RIGHT`, `STOP`, `EMERGENCY_STOP`
-
-### Acknowledgement Response
-
+**Acknowledgement Response**:
 ```json
 {
-  "command_id": "cmd-928079e9",
+  "command_id": "cmd-001",
   "sequence_number": 1,
   "status": "ACCEPTED",
   "reason": null,
@@ -253,58 +177,96 @@ Valid `command_type` values: `MOVE_FORWARD`, `MOVE_BACKWARD`, `TURN_LEFT`, `TURN
 }
 ```
 
-Possible `status` values: `ACCEPTED`, `REJECTED`, `EMERGENCY_STOP_ACTIVE`
+---
 
-### Live API Demonstration
+## 🐧 Linux Operations & System Inspection
 
-```
-STEP 1: Initial state          x=0.0  y=0.0  orientation=0.0  mode=IDLE
-STEP 2: MOVE_FORWARD seq=1     → ACCEPTED
-STEP 3: Position after tick    x=0.25 y=0.0  orientation=0.0  mode=MOVING
-STEP 4: TURN_LEFT seq=2        → ACCEPTED
-STEP 5: Orientation after tick x=0.25 y=0.0  orientation=0.375 mode=MOVING
-STEP 6: EMERGENCY STOP         → acknowledged=True
-STEP 7: MOVE_FORWARD blocked   → EMERGENCY_STOP_ACTIVE
-STEP 8: RESET                  → acknowledged=True
-STEP 9: State after reset      x=0.0  y=0.0  emergency_stop=False mode=IDLE
-STEP 10: MOVE after reset      → ACCEPTED
-STEP 11: Metrics               received=4 accepted=3 rejected=1 estops=1 resets=1
-```
-
-### Robot Coordinate System
-
-```
-                    +Y (North)
-                     |
-                     |
-  -X (West) ---------+--------- +X (East)   ← orientation=0.0 faces East
-                     |
-                     |
-                    -Y (South)
-
-Boundary: X ∈ [-50, 50]  Y ∈ [-50, 50]
-Speed range: 0.0 – 2.0 (normalised multiplier)
-Simulation frequency: 20 Hz (configurable via SIMULATION_FREQUENCY_HZ)
-Watchdog timeout: 2.0 s (configurable via WATCHDOG_TIMEOUT_SECONDS)
-```
-
-### Run Tests
+The platform is engineered to run in native Linux, WSL2 (Ubuntu), or Linux containers, providing operations scripts in `scripts/`:
 
 ```bash
-cd teleop-sim
-PYTHONPATH=backend python -m pytest backend/tests/ -v
-# → 81 passed in ~3s
+# Inspect system environment, CPU, RAM, disk, process, and port availability
+bash scripts/system_diagnostics.sh
+
+# Start backend as background daemon (PID recorded to logs/teleop-sim.pid)
+bash scripts/start.sh
+
+# Check process status and inspect open ports (ss / netstat)
+bash scripts/status.sh
+
+# Send graceful SIGTERM (15) with strict process-signature verification
+bash scripts/stop.sh
+```
+
+Key Linux tools demonstrated in this project:
+- **Process Management**: `ps -fp <PID>`, `pgrep`, `kill -15`, `kill -9` (with process signature guards).
+- **Networking**: `ss -tulnp`, `curl -f http://localhost:8000/health`.
+- **System Information**: `uname -srmo`, `free -m`, `df -h`.
+- **Logs**: Structured rotating log files in `logs/`.
+
+---
+
+## 🚀 Quickstart & Installation
+
+### Option 1: Native Linux / Windows WSL2
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/sunilkumar2170/robot-teleoperation-platform.git
+cd robot-teleoperation-platform
+
+# 2. Set up virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows PowerShell: .venv\Scripts\Activate.ps1
+
+# 3. Install dependencies
+pip install -r backend/requirements.txt
+
+# 4. Start the application
+PYTHONPATH=backend python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### Option 2: Docker & Docker Compose
+
+```bash
+# Build and run backend container in background
+docker compose up --build -d
+
+# Check container health and status
+docker compose ps
+docker compose logs -f
+
+# Shutdown container
+docker compose down
 ```
 
 ---
 
-## 7. Regenerate Screenshots
+## 🧪 Automated Testing & Verification
 
-Screenshots are generated programmatically from the real application UI using Pillow. Run this whenever the frontend changes:
+The project enforces strict test-driven development using Pytest.
 
 ```bash
-# From the teleop-sim/ root
-python docs/generate_screenshots.py
+# Run full test suite
+PYTHONPATH=backend python -m pytest backend/tests/ -v
 ```
 
-Each subsequent implementation phase will replace the placeholder panels with genuine live-captured application views.
+**Verified Test Results (81 / 81 Passing)**:
+```text
+backend/tests/test_environment.py ....                                    [  4%]
+backend/tests/test_robot.py ............................................. [100%]
+
+============================== 81 passed in 2.80s ==============================
+```
+
+- **Environment & Scaffolding**: 4 tests
+- **Robot Kinematics & Bounds**: 16 tests
+- **Emergency Stop & Reset**: 8 tests
+- **Safety Watchdog (2.0s Inactivity)**: 4 tests
+- **Sequence Number & Command Validation**: 10 tests
+- **REST Endpoints & Metrics**: 39 tests
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License.

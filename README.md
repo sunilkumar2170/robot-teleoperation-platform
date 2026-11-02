@@ -4,6 +4,38 @@ Teleop-Sim is a production-grade remote robotics teleoperation simulator designe
 
 ---
 
+## Application Screenshots
+
+> Screenshots refresh automatically as each implementation phase completes.  
+> Run `python docs/generate_screenshots.py` to regenerate after any UI change.
+
+### 1. Robotics Operator Dashboard
+<!-- Phase 2+ : HTML5 Canvas robot, WASD controls, battery & status telemetry -->
+![Teleop-Sim Operator Dashboard — 2D robot canvas, direction controls, emergency stop, and live status cards](docs/images/teleop-dashboard.png)
+
+The main operator view shows the 2D robot canvas with heading indicator, directional control buttons, an **Emergency Stop** override, and real-time telemetry cards (position, battery, connection status).  
+*Robot kinematics and WebSocket control are implemented in Phase 2 & 3.*
+
+---
+
+### 2. Network Fault Injection & Latency Dashboard
+<!-- Phase 5 : latency/jitter/packet-loss sliders, live RTT chart -->
+![Network monitoring panel — latency, jitter, and packet-loss sliders with live RTT chart](docs/images/network-monitoring.png)
+
+The network panel provides runtime sliders for **Latency (0–2000 ms)**, **Jitter (0–500 ms)**, and **Packet Loss (0–50 %)**, plus a live round-trip-time chart so operators can observe the direct impact of simulated faults on robot control.  
+*Network fault engine and live telemetry charting implemented in Phase 5.*
+
+---
+
+### 3. Linux System Monitoring & Application Logs
+<!-- Phase 9 : psutil CPU/MEM/Disk, log stream, process status -->
+![Linux monitoring panel — CPU, memory, disk metrics and live application log stream](docs/images/linux-monitoring.png)
+
+The Linux operations panel surfaces real-time host metrics (CPU %, RSS memory, disk, WebSocket connection count, uptime) pulled via `psutil` and `/proc`, alongside a live-streaming application event log (equivalent to `tail -f logs/application.log`).  
+*Full Linux monitoring module implemented in Phase 9.*
+
+---
+
 ## 1. System Architecture
 
 ```mermaid
@@ -162,3 +194,16 @@ Run the test suite with Pytest:
 cd teleop-sim/backend
 pytest -v
 ```
+
+---
+
+## 7. Regenerate Screenshots
+
+Screenshots are generated programmatically from the real application UI using Pillow. Run this whenever the frontend changes:
+
+```bash
+# From the teleop-sim/ root
+python docs/generate_screenshots.py
+```
+
+Each subsequent implementation phase will replace the placeholder panels with genuine live-captured application views.

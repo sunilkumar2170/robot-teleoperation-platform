@@ -61,40 +61,118 @@ All 12 phases have been fully implemented and verified:
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart TD
+flowchart TB
     subgraph Client["Operator Web Client"]
-        UI["HTML5 / Canvas Dashboard"]
+        direction TB
+        UI["HTML5 & Canvas UI"]
         WSClient["WebSocket Client (Auto-Reconnect)"]
         MetricsUI["Telemetry & Latency Charts"]
+        UI --> WSClient
     end
 
     subgraph Backend["FastAPI Backend (Asyncio)"]
-        Router["REST & WebSocket Endpoints"]
-        FaultInjector["Network Fault Injector"]
+        direction TB
+        Router["REST & WebSocket Endpoints (/ws/robot)"]
+        FaultInjector["Network Fault Injector (Latency / Jitter / Drop)"]
         CmdValidator["Sequence & Command Validator"]
-        Watchdog["Safety Watchdog Service"]
-        SimEngine["2D Differential-Drive Simulator (20 Hz)"]
-        LinuxMon["Linux System Monitor"]
+        SimEngine["2D Differential-Drive Kinematics Engine (20 Hz)"]
+        Watchdog["Safety Watchdog Service (2.0s Inactivity)"]
         SessionSvc["Session Recorder & Replay Service"]
+        LinuxMon["Linux System Monitor (psutil / /proc)"]
+
+        Router --> FaultInjector
+        FaultInjector --> CmdValidator
+        CmdValidator --> SimEngine
+        SimEngine --> Watchdog
+        SimEngine --> SessionSvc
+        LinuxMon -.-> Router
     end
 
     subgraph Persistence["Storage & Observability"]
-        DB[("SQLite Database")]
-        Logs["Rotating Structured Logs"]
+        direction LR
+        DB[("SQLite Database
+(Sessions & Events)")]
+        Logs["Rotating Structured Logs
+(App, Robot, Network, Security)"]
     end
 
-    UI --> WSClient
     WSClient -->|"Commands (JSON)"| Router
-    Router --> FaultInjector
-    FaultInjector --> CmdValidator
-    CmdValidator --> SimEngine
-    SimEngine --> Watchdog
-    SimEngine -.->|"State Broadcast"| WSClient
-    SimEngine --> SessionSvc
+    SimEngine -.->|"State Broadcast (20 Hz)"| WSClient
     SessionSvc --> DB
-    LinuxMon -.-> Router
     CmdValidator -.-> Logs
     SimEngine -.-> Logs
+    Watchdog -.-> Logs
+```
+
+---
+
+## 📁 Project System Structure
+
+```text
+teleop-sim/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                  # FastAPI lifespan, CORS & router mounting
+│   │   ├── core/
+│   │   │   └── config.py            # Pydantic v2 typed settings & environment loader
+│   │   ├── api/
+│   │   │   ├── routes.py            # REST endpoints (state, commands, E-stop, reset, sessions)
+│   │   │   └── websocket.py         # Bi-directional /ws/robot WebSocket streaming
+│   │   ├── robot/
+│   │   │   ├── state.py             # Authoritative mutable RobotState dataclass
+│   │   │   ├── simulator.py         # 20 Hz differential-drive kinematics engine
+│   │   │   └── safety.py            # Latched E-stop, 2.0s watchdog & sequence validation
+│   │   ├── network/
+│   │   │   ├── fault_injector.py    # Runtime latency, jitter & packet loss simulation
+│   │   │   └── latency.py           # Real-time RTT & telemetry tracker
+│   │   ├── linux/
+│   │   │   └── system_monitor.py    # Safe non-root /proc & psutil host inspection
+│   │   ├── services/
+│   │   │   ├── session_service.py   # SQLite session recording & replay engine
+│   │   │   └── logging_service.py   # Rotating structured logs (app, robot, net, sec)
+│   │   ├── database/
+│   │   │   ├── database.py          # SQLite engine & sessionmaker factory
+│   │   │   └── models.py            # SQLAlchemy SessionRecord & SessionEvent ORM models
+│   │   └── schemas/
+│   │       ├── command.py           # Validated Pydantic command & ack schemas
+│   │       └── robot.py             # Authoritative state response schema
+│   ├── tests/
+│   │   ├── test_environment.py      # Python 3.11+, dependency & config baseline tests
+│   │   ├── test_robot.py            # Kinematics, boundaries, E-stop & REST API tests
+│   │   ├── test_websocket.py        # /ws/robot connection, broadcast & command tests
+│   │   ├── test_network.py          # Latency delay, jitter & deterministic packet drop tests
+│   │   ├── test_sessions.py         # SQLite recording, lifecycle & replay tests
+│   │   └── test_linux.py            # System introspection & resource audit tests
+│   ├── Dockerfile                   # Multi-stage production container with Linux tools
+│   └── requirements.txt             # Pinned production dependencies
+├── frontend/
+│   ├── index.html                   # Dark-themed robotics operator cockpit
+│   ├── css/
+│   │   └── style.css                # Polished design system (grid, telemetry cards, d-pad)
+│   └── js/
+│       ├── app.js                   # Client lifecycle bootstrap & component wiring
+│       ├── websocket.js             # Resilient WS client with exponential backoff & state recovery
+│       ├── robot.js                 # 2D Canvas arena renderer with trail & E-stop warning
+│       ├── dashboard.js             # D-pad, keyboard teleop, sliders, session controls & log viewer
+│       └── metrics.js               # Real-time RTT canvas chart & telemetry plotter
+├── scripts/
+│   ├── start.sh                     # Daemon launcher with PID tracking
+│   ├── stop.sh                      # Graceful shutdown (SIGTERM -> SIGKILL) with signature verification
+│   ├── status.sh                    # Process health, listening ports & health endpoint probe
+│   └── system_diagnostics.sh        # Linux OS, kernel, CPU, RAM, disk & Docker diagnostics
+├── docs/
+│   ├── generate_demo_gif.py         # Kinematics-driven simulation GIF generator
+│   └── images/
+│       ├── robot-demo.gif           # Live 20 Hz simulation animation
+│       ├── teleop-dashboard.png     # Operator cockpit visual preview
+│       ├── network-monitoring.png   # Fault injection controls preview
+│       └── linux-monitoring.png     # Linux telemetry & logs preview
+├── data/                            # Persistent SQLite database storage
+├── logs/                            # Rotating log files directory
+├── docker-compose.yml               # Production container orchestration
+├── .env.example                     # Parameterized environment template
+├── .gitignore                       # Repository ignore rules
+└── README.md                        # Documentation & engineering manual
 ```
 
 ---
